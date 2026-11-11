@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NetShield AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="landing-page">
+    <header class="topbar">
+        <div class="brand-wrap">
+            <div class="brand-mark">N</div>
+            <div>
+                <h3>NETSHIELD AI</h3>
+                <small>Smart Network Guardian</small>
+            </div>
+        </div>
+        <nav class="top-actions">
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Create Account</a>
+        </nav>
+    </header>
+
+    <main class="hero">
+        <div class="hero-copy">
+            <p class="eyebrow">Local cybersecurity toolkit</p>
+            <h1>Smart Network Guardian</h1>
+            <p class="lead">Analyze URL text for common risk signals, review authorized local-network discoveries, and keep an auditable history of scans.</p>
+            <div class="cta-row">
+                {% if current_user %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-large">OPEN DASHBOARD</a>
+                <a href="{{ url_for('scan_url') }}" class="btn btn-secondary btn-large">SCAN URL</a>
+                <a href="{{ url_for('network_scan') }}" class="btn btn-secondary btn-large">MONITOR NETWORK</a>
+                {% else %}
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">GET STARTED</a>
+                <a href="{{ url_for('login', next=url_for('scan_url')) }}" class="btn btn-secondary btn-large">LOGIN TO SCAN URL</a>
+                <a href="{{ url_for('login', next=url_for('network_scan')) }}" class="btn btn-secondary btn-large">LOGIN TO MONITOR NETWORK</a>
+                {% endif %}
+            </div>
+            <div class="mini-stats">
+                <div>
+                    <strong>On demand</strong>
+                    <span>Network scan</span>
+                </div>
+                <div>
+                    <strong>0-100</strong>
+                    <span>Risk scoring</span>
+                </div>
+                <div>
+                    <strong>Rule based</strong>
+                    <span>URL analysis</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-panel">
+            <div class="shield-panel">
+                <div class="shield-core">
+                    <span>NETSHIELD</span>
+                </div>
+                <div class="pulse-ring ring-one"></div>
+                <div class="pulse-ring ring-two"></div>
+            </div>
+        </div>
+    </main>
+
+    <section class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">🌐</div>
+            <h4>URL Risk Detection</h4>
+            <p>Inspect URL text for risky patterns. Submitted addresses are not visited or fetched.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📡</div>
+            <h4>Wi-Fi Network Monitoring</h4>
+            <p>Run an explicitly authorized local scan when supported, or use clearly labeled demo data.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🧠</div>
+            <h4>Transparent Estimates</h4>
+            <p>See the indicators behind each estimate. No trained machine-learning model is claimed.</p>
+        </div>
+    </section>
+</body>
+</html>

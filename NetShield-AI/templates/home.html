@@ -1,0 +1,51 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Welcome</p>
+        <h1>Welcome back, {{ current_user.full_name if current_user else 'User' }}</h1>
+    </div>
+    <span class="badge">{{ current_user.network_mode|upper }} NETWORK MODE</span>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card neutral">
+        <span class="label">Overall Security Status</span>
+        <strong class="score-value">{{ stats.overall_risk_score }}%</strong>
+        <span class="muted">Risk estimate</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">URLs Scanned</span>
+        <strong>{{ stats.urls_scanned }}</strong>
+        <span class="muted">Security checks</span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Devices Detected</span>
+        <strong>{{ stats.known_devices + stats.new_devices + stats.unknown_devices + stats.demo_devices + stats.suspicious_devices }}</strong>
+        <span class="muted">Inventory (demo samples included when present)</span>
+    </div>
+    <div class="stat-card danger">
+        <span class="label">Active Alerts</span>
+        <strong>{{ stats.active_alerts }}</strong>
+        <span class="muted">Needs review</span>
+    </div>
+</div>
+
+<div class="feature-panel-grid">
+    <div class="big-panel url-panel">
+        <div class="panel-heading">
+            <h3>URL SECURITY</h3>
+        </div>
+        <p>Analyze a website URL and estimate its security risk.</p>
+        <a href="{{ url_for('scan_url') }}" class="btn btn-primary">SCAN URL</a>
+    </div>
+    <div class="big-panel wifi-panel">
+        <div class="panel-heading">
+            <h3>WI-FI NETWORK SECURITY</h3>
+        </div>
+        <p>Run a manual scan in demo mode or on a network you are authorized to administer.</p>
+        <a href="{{ url_for('network_scan') }}" class="btn btn-primary">START NETWORK SCAN</a>
+    </div>
+</div>
+{% endblock %}

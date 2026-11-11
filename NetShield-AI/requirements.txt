@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+Werkzeug>=3.0,<4
+python-dotenv>=1.0,<2
+scapy>=2.5,<3
+gunicorn>=23,<24
+psycopg[binary]>=3.2,<4

@@ -1,0 +1,127 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">On-demand network discovery</p>
+        <h1>Wi-Fi Network Monitor</h1>
+    </div>
+</div>
+
+<div class="panel scanner-panel">
+    <div class="panel-heading">
+        <h3>Current Network</h3>
+        <span class="badge">{{ network_mode|upper }} MODE</span>
+    </div>
+    {% if network_mode == 'demo' %}
+    <p class="notice">Demo mode uses simulated sample devices. Results are labeled DEMO and are not evidence of live network activity. Change to Live in Settings to attempt local discovery.</p>
+    {% elif cloud_deployment %}
+    <p class="notice">Live scanning is unavailable on the cloud server. Cloud hosting cannot access the Wi-Fi network connected to your computer. An authorized local monitoring agent is required; no local agent is configured for this project yet.</p>
+    {% else %}
+    <p class="notice">Live mode attempts ARP discovery only on the current private IPv4 /24 interface. It requires Scapy and may require administrator privileges. No access, interception, or router changes are attempted.</p>
+    {% endif %}
+    <form id="networkScanForm" class="scanner-form">
+        {% if network_mode == 'live' and not cloud_deployment %}
+        <label class="consent-check">
+            <input type="checkbox" id="networkAuthorization" />
+            I own or am authorized to scan the network connected to this computer.
+        </label>
+        {% endif %}
+        <button type="submit" class="btn btn-primary"{% if network_mode == 'live' and cloud_deployment %} disabled{% endif %}>SCAN NETWORK NOW</button>
+    </form>
+    <div id="networkResult" class="result-box hidden" aria-live="polite"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const csrfToken = {{ csrf_token|tojson }};
+const networkMode = {{ network_mode|tojson }};
+const networkAgentRequired = {{ (cloud_deployment and network_mode == 'live')|tojson }};
+const networkForm = document.getElementById('networkScanForm');
+const networkResult = document.getElementById('networkResult');
+
+function appendTextCell(row, value) {
+    const cell = row.insertCell();
+    cell.textContent = value == null ? '' : String(value);
+}
+
+networkForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = networkForm.querySelector('button[type="submit"]');
+    if (networkAgentRequired) {
+        networkResult.classList.remove('hidden');
+        networkResult.textContent = 'Cloud hosting cannot scan your personal Wi-Fi network. Live monitoring requires a separately configured authorized local agent; no agent is configured.';
+        return;
+    }
+    if (networkMode === 'live' && !document.getElementById('networkAuthorization').checked) {
+        networkResult.classList.remove('hidden');
+        networkResult.textContent = 'Confirm that you are authorized to scan this network.';
+        return;
+    }
+    button.disabled = true;
+    networkResult.classList.remove('error');
+    networkResult.classList.remove('hidden');
+    networkResult.textContent = 'Scanning...';
+    try {
+        const response = await fetch('{{ url_for("network_scan") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify({
+                authorized: networkMode !== 'live' || document.getElementById('networkAuthorization').checked
+            })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Network scan failed.');
+        const result = data.result;
+        networkResult.replaceChildren();
+        networkResult.classList.remove('error');
+        const heading = document.createElement('h3');
+        heading.textContent = `${result.mode.toUpperCase()} SCAN: ${result.risk_score}/100 - ${result.risk_level}`;
+        const summary = document.createElement('p');
+        summary.textContent = `Network: ${result.network} | Devices found: ${result.total_devices} | Newly observed: ${result.new_devices} | Unknown: ${result.unknown_devices}`;
+        const disclaimer = document.createElement('p');
+        disclaimer.className = 'notice';
+        disclaimer.textContent = result.disclaimer;
+        networkResult.append(heading, summary);
+
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'table-wrap';
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        const header = table.createTHead().insertRow();
+        ['IP Address', 'MAC Address', 'Hostname', 'Classification'].forEach((label) => {
+            const cell = document.createElement('th');
+            cell.textContent = label;
+            header.appendChild(cell);
+        });
+        const body = table.createTBody();
+        result.devices.forEach((device) => {
+            const row = body.insertRow();
+            appendTextCell(row, device.ip);
+            appendTextCell(row, device.mac);
+            appendTextCell(row, device.hostname);
+            appendTextCell(row, device.classification);
+        });
+        if (!result.devices.length) {
+            const row = body.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 4;
+            cell.textContent = 'No devices were discovered.';
+        }
+        tableWrap.appendChild(table);
+        networkResult.append(tableWrap, disclaimer);
+        const manageLink = document.createElement('a');
+        manageLink.href = '{{ url_for("devices") }}';
+        manageLink.className = 'btn btn-secondary';
+        manageLink.textContent = 'MANAGE DEVICES';
+        networkResult.appendChild(manageLink);
+    } catch (error) {
+        networkResult.textContent = error.message;
+        networkResult.classList.add('error');
+    } finally {
+        button.disabled = false;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">System controls</p>
+        <h1>Settings</h1>
+    </div>
+</div>
+
+<div class="settings-grid">
+    <div class="panel">
+        <div class="panel-heading">
+            <h3>Profile</h3>
+        </div>
+        <form method="POST" action="{{ url_for('settings') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="action" value="profile" />
+            <label>Full Name</label>
+            <input type="text" name="full_name" value="{{ user.full_name }}" />
+            <label>Email</label>
+            <input type="email" name="email" value="{{ user.email }}" />
+            <button type="submit" class="btn btn-primary">SAVE PROFILE</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <h3>Change Password</h3>
+        </div>
+        <form method="POST" action="{{ url_for('settings') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="action" value="password" />
+            <label>Current Password</label>
+            <input type="password" name="current_password" required />
+            <label>New Password</label>
+            <input type="password" name="new_password" required />
+            <button type="submit" class="btn btn-primary">UPDATE PASSWORD</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <h3>Preferences and Operating Mode</h3>
+        </div>
+        <form method="POST" action="{{ url_for('settings') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="action" value="preferences" />
+            <label>Network Operating Mode</label>
+            <select name="network_mode">
+                <option value="demo" {% if user.network_mode == 'demo' %}selected{% endif %}>Demo (simulated sample devices)</option>
+                <option value="live" {% if user.network_mode == 'live' %}selected{% endif %}>{% if cloud_deployment %}Live (requires local agent setup){% else %}Live (authorized local scan){% endif %}</option>
+            </select>
+            <button type="submit" class="btn btn-primary">SAVE PREFERENCES</button>
+        </form>
+        {% if cloud_deployment %}
+        <p class="notice">A cloud-hosted application cannot scan your personal Wi-Fi network. Live monitoring requires a separately configured local agent on an authorized computer; no agent is configured yet.</p>
+        {% else %}
+        <p class="notice">Live scans require explicit authorization and Scapy; administrator permissions may be required on Windows. Scan runs only when you press the scan button.</p>
+        {% endif %}
+        <p class="muted">URL checks use transparent rule-based text analysis; no trained model is included. URLs are never fetched. Dashboard and reports use this account's saved records.</p>
+    </div>
+</div>
+{% endblock %}

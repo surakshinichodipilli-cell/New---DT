@@ -1,0 +1,97 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Compliance logs</p>
+        <h1>Reports</h1>
+    </div>
+    <form method="GET" action="{{ url_for('reports') }}">
+        <input type="hidden" name="download" value="csv" />
+        <input type="hidden" name="from" value="{{ date_from }}" />
+        <input type="hidden" name="to" value="{{ date_to }}" />
+        <button type="submit" class="btn btn-primary">DOWNLOAD CSV</button>
+    </form>
+</div>
+
+<div class="panel">
+    <form method="GET" action="{{ url_for('reports') }}" class="filter-form">
+        <label for="fromDate">From</label>
+        <input id="fromDate" type="date" name="from" value="{{ date_from }}" />
+        <label for="toDate">To</label>
+        <input id="toDate" type="date" name="to" value="{{ date_to }}" />
+        <button type="submit" class="btn btn-secondary btn-small">APPLY DATE FILTER</button>
+    </form>
+    <p class="muted">Reports include saved URL analyses and network scan records for this account. Demo scans retain their demo label.</p>
+</div>
+
+<div class="report-grid">
+    <div class="panel">
+        <div class="panel-heading">
+            <h3>URL Scan History</h3>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Risk Score</th>
+                        <th>Risk Level</th>
+                        <th>Date/Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in url_history %}
+                    <tr>
+                        <td>{{ record.url }}</td>
+                        <td>{{ record.risk_score }}</td>
+                        <td><span class="badge {{ record.risk_level.lower().replace(' ', '-') }}">{{ record.risk_level }}</span></td>
+                        <td>{{ record.created_at }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">No URL scan history available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <h3>Network Scan History</h3>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Total Devices</th>
+                        <th>New Devices</th>
+                        <th>Suspicious Devices</th>
+                        <th>Network Risk Score</th>
+                        <th>Mode</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in network_history %}
+                    <tr>
+                        <td>{{ record.created_at }}</td>
+                        <td>{{ record.total_devices }}</td>
+                        <td>{{ record.new_devices }}</td>
+                        <td>{{ record.suspicious_devices }}</td>
+                        <td>{{ record.risk_score }}</td>
+                        <td>{{ record.mode|upper }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">No network scan history available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

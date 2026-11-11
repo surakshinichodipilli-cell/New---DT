@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NetShield AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="dashboard-body{% if request.endpoint == 'dashboard' %} dashboard-page{% endif %}"{% if request.endpoint == 'dashboard' %} data-dashboard-url="{{ url_for('api_dashboard') }}"{% endif %}>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-mark">N</div>
+                <div>
+                    <h3>NETSHIELD AI</h3>
+                    <span class="sidebar-tagline">SMART NETWORK GUARDIAN</span>
+                </div>
+            </div>
+
+            <nav class="side-nav" id="primary-navigation">
+                <a href="{{ url_for('home') }}" class="nav-link{% if request.endpoint == 'home' %} active{% endif %}"{% if request.endpoint == 'home' %} aria-current="page"{% endif %}><span aria-hidden="true">⌂</span> Home</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link{% if request.endpoint == 'dashboard' %} active{% endif %}"{% if request.endpoint == 'dashboard' %} aria-current="page"{% endif %}><span aria-hidden="true">▦</span> Dashboard</a>
+                <a href="{{ url_for('scan_url') }}" class="nav-link{% if request.endpoint == 'scan_url' %} active{% endif %}"{% if request.endpoint == 'scan_url' %} aria-current="page"{% endif %}><span aria-hidden="true">◎</span> URL Detection</a>
+                <a href="{{ url_for('network_scan') }}" class="nav-link{% if request.endpoint == 'network_scan' %} active{% endif %}"{% if request.endpoint == 'network_scan' %} aria-current="page"{% endif %}><span aria-hidden="true">⌁</span> Wi-Fi Detection</a>
+                <a href="{{ url_for('devices') }}" class="nav-link{% if request.endpoint == 'devices' %} active{% endif %}"{% if request.endpoint == 'devices' %} aria-current="page"{% endif %}><span aria-hidden="true">▣</span> Devices</a>
+                <a href="{{ url_for('alerts') }}" class="nav-link{% if request.endpoint == 'alerts' %} active{% endif %}"{% if request.endpoint == 'alerts' %} aria-current="page"{% endif %}><span aria-hidden="true">△</span> Alerts</a>
+                <a href="{{ url_for('reports') }}" class="nav-link{% if request.endpoint == 'reports' %} active{% endif %}"{% if request.endpoint == 'reports' %} aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Reports</a>
+                <a href="{{ url_for('settings') }}" class="nav-link{% if request.endpoint == 'settings' %} active{% endif %}"{% if request.endpoint == 'settings' %} aria-current="page"{% endif %}><span aria-hidden="true">⚙</span> Settings</a>
+                <form method="POST" action="{{ url_for('logout') }}" class="logout-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                    <button type="submit" class="nav-link"><span aria-hidden="true">↪</span> Logout</button>
+                </form>
+            </nav>
+            <div class="sidebar-footer">
+                <span class="connection-indicator" aria-hidden="true"></span>
+                <span>Local protection active</span>
+            </div>
+        </aside>
+        <button class="sidebar-overlay" type="button" aria-label="Close navigation"></button>
+
+        <main class="main-panel">
+            <header class="main-topbar">
+                <button class="mobile-menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">☰</button>
+                <div class="topbar-page-title">
+                    <span>NETSHIELD AI <span aria-hidden="true">/</span>
+                        {% if request.endpoint == 'home' %}Home
+                        {% elif request.endpoint == 'dashboard' %}Dashboard
+                        {% elif request.endpoint == 'scan_url' %}URL Detection
+                        {% elif request.endpoint == 'network_scan' %}Wi-Fi Detection
+                        {% elif request.endpoint == 'devices' %}Devices
+                        {% elif request.endpoint == 'alerts' %}Alerts
+                        {% elif request.endpoint == 'reports' %}Reports
+                        {% else %}Settings{% endif %}
+                    </span>
+                    <span class="topbar-welcome">Welcome back, {{ current_user.full_name if current_user else 'User' }}</span>
+                </div>
+                <div class="topbar-actions">
+                    <span class="topbar-date">{{ now.strftime('%a, %b %d, %Y') }}</span>
+                    <a class="notification-link" href="{{ url_for('alerts') }}" aria-label="Security alerts">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12h4"/></svg>
+                        {% if dashboard_active_alerts %}<span class="notification-count">{{ dashboard_active_alerts }}</span>{% endif %}
+                    </a>
+                    <span class="user-avatar" aria-label="{{ current_user.full_name if current_user else 'User' }}">{{ (current_user.full_name if current_user else 'U')[:1]|upper }}</span>
+                </div>
+            </header>
+            {% if request.endpoint == 'dashboard' %}<p class="dashboard-refresh-error hidden" data-refresh-error role="status"></p>{% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

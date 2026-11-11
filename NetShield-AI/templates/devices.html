@@ -1,0 +1,137 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Inventory and trust decisions</p>
+        <h1>Device Management</h1>
+    </div>
+    <a href="{{ url_for('network_scan') }}" class="btn btn-primary">SCAN NETWORK</a>
+</div>
+
+<div class="panel">
+    <div class="panel-heading"><h3>Trusted Device Records</h3></div>
+    <form id="addTrustedDevice" class="filter-form">
+        <label for="trustedIdentifier">IP or MAC address</label>
+        <input id="trustedIdentifier" type="text" maxlength="64" placeholder="192.168.1.20 or aa:bb:cc:dd:ee:ff" required />
+        <label for="trustedLabel">Device name</label>
+        <input id="trustedLabel" type="text" maxlength="80" placeholder="Office laptop" required />
+        <button class="btn btn-primary btn-small" type="submit">ADD TRUSTED DEVICE</button>
+    </form>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Identifier</th><th>Name</th><th>Added</th><th>Actions</th></tr></thead>
+            <tbody id="trustedRows">
+                {% for device in trusted_devices %}
+                <tr>
+                    <td>{{ device.device_key }}</td>
+                    <td>{{ device.label }}</td>
+                    <td>{{ device.created_at }}</td>
+                    <td class="row-actions">
+                        <button type="button" class="btn btn-secondary btn-small" data-action="edit" data-identifier="{{ device.device_key }}" data-label="{{ device.label }}">EDIT</button>
+                        <button type="button" class="btn btn-warning btn-small" data-action="remove" data-identifier="{{ device.device_key }}">REMOVE</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No trusted devices have been added.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="panel">
+    <p class="notice">
+        Devices become trusted only when you mark them. Demo devices are simulated and cannot be used as live trust records.
+        Live first-seen and last-seen values reflect scans performed by this application; there is no continuous monitoring.
+    </p>
+    <div id="deviceMessage" class="muted" aria-live="polite"></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr><th>IP Address</th><th>MAC Address</th><th>Hostname</th><th>Status</th><th>Mode</th><th>First Seen</th><th>Last Seen</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="deviceRows">
+                {% for device in devices %}
+                <tr>
+                    <td>{{ device.ip_address }}</td>
+                    <td>{{ device.mac_address or 'Unavailable' }}</td>
+                    <td>{{ device.hostname or 'Unavailable' }}</td>
+                    <td>{{ device.classification }}{% if device.trusted_label %}: {{ device.trusted_label }}{% endif %}</td>
+                    <td>{{ device.mode|upper }}</td>
+                    <td>{{ device.first_seen }}</td>
+                    <td>{{ device.last_seen }}</td>
+                    <td>
+                        {% if device.mode == 'live' and device.classification != 'TRUSTED' %}
+                        <button type="button" class="btn btn-primary btn-small" data-action="trust" data-identifier="{{ device.mac_address if device.mac_address and device.mac_address != '--' else device.ip_address }}">TRUST</button>
+                        {% elif device.classification == 'TRUSTED' %}
+                        <button type="button" class="btn btn-secondary btn-small" data-action="trust" data-identifier="{{ device.mac_address if device.mac_address and device.mac_address != '--' else device.ip_address }}">EDIT NAME</button>
+                        <button type="button" class="btn btn-warning btn-small" data-action="remove" data-identifier="{{ device.mac_address if device.mac_address and device.mac_address != '--' else device.ip_address }}">REMOVE TRUST</button>
+                        {% else %}
+                        <span class="muted">No action</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8">No discovered devices. Run a scan to populate inventory.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const csrfToken = {{ csrf_token|tojson }};
+const message = document.getElementById('deviceMessage');
+
+async function updateTrust(action, identifier, label, button) {
+    button.disabled = true;
+    try {
+        const response = await fetch('{{ url_for("api_device_trust") }}', {
+            method: action === 'trust' ? 'POST' : 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify({ identifier, label })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not update device trust.');
+        message.textContent = data.message;
+        window.location.reload();
+    } catch (error) {
+        message.textContent = error.message;
+        button.disabled = false;
+    }
+}
+
+async function onTrustAction(event) {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const action = button.dataset.action;
+    const identifier = button.dataset.identifier;
+    let label = null;
+    if (action === 'trust' || action === 'edit') {
+        label = window.prompt('Enter a recognizable name for this trusted device:', button.dataset.label || '');
+        if (!label) return;
+    } else if (!window.confirm(`Remove trust for ${identifier}?`)) {
+        return;
+    }
+    await updateTrust(action === 'remove' ? 'remove' : 'trust', identifier, label, button);
+}
+
+document.getElementById('deviceRows').addEventListener('click', onTrustAction);
+document.getElementById('trustedRows').addEventListener('click', onTrustAction);
+document.getElementById('addTrustedDevice').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    await updateTrust(
+        'trust',
+        document.getElementById('trustedIdentifier').value,
+        document.getElementById('trustedLabel').value,
+        button
+    );
+});
+</script>
+{% endblock %}

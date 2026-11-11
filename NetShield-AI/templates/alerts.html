@@ -1,0 +1,84 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Threat monitoring</p>
+        <h1>Alerts</h1>
+    </div>
+</div>
+
+{% if selected_alert %}
+<div class="panel alert-detail">
+    <div class="panel-heading">
+        <h3>Selected Alert</h3>
+    </div>
+    <p><strong>Type:</strong> {{ selected_alert.alert_type }}</p>
+    <p><strong>Severity:</strong> <span class="badge {{ selected_alert.severity.lower() }}">{{ selected_alert.severity }}</span></p>
+    <p><strong>Description:</strong> {{ selected_alert.description }}</p>
+    <p><strong>Recommended action:</strong> {{ selected_alert.recommended_action or 'Review the event and verify through a trusted source.' }}</p>
+    <p><strong>Timestamp:</strong> {{ selected_alert.timestamp }}</p>
+    <p><strong>Status:</strong> {{ selected_alert.status }}</p>
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-heading">
+        <h3>Alert History</h3>
+    </div>
+    <form method="GET" action="{{ url_for('alerts') }}" class="filter-form">
+        <label for="severityFilter">Severity</label>
+        <select id="severityFilter" name="severity">
+            <option value="">All severities</option>
+            {% for severity in ['Low', 'Medium', 'High', 'Critical'] %}
+            <option value="{{ severity }}" {% if selected_severity == severity %}selected{% endif %}>{{ severity }}</option>
+            {% endfor %}
+        </select>
+        <label for="typeFilter">Event type</label>
+        <input id="typeFilter" type="text" name="event_type" value="{{ selected_event_type or '' }}" maxlength="120" />
+        <button class="btn btn-secondary btn-small" type="submit">FILTER</button>
+    </form>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Alert Type</th>
+                    <th>Severity</th>
+                    <th>Description</th>
+                    <th>Recommended Action</th>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr>
+                    <td>{{ alert.alert_type }}</td>
+                    <td><span class="badge {{ alert.severity.lower() }}">{{ alert.severity }}</span></td>
+                    <td>{{ alert.description }}</td>
+                    <td>{{ alert.recommended_action or 'Review the event and verify through a trusted source.' }}</td>
+                    <td>{{ alert.timestamp }}</td>
+                    <td>{{ alert.status }}</td>
+                    <td class="row-actions">
+                        <a href="{{ url_for('alerts', view=alert.id) }}" class="btn btn-secondary btn-small">VIEW</a>
+                        <form method="POST" action="{{ url_for('mark_alert_reviewed', alert_id=alert.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                            <button type="submit" class="btn btn-warning btn-small">RESOLVE</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_alert_route', alert_id=alert.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                            <button type="submit" class="btn btn-danger btn-small">DELETE</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7">No alerts available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

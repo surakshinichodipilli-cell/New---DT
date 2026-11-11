@@ -1,0 +1,159 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Rule-based text analysis</p>
+        <h1>URL Security Scanner</h1>
+    </div>
+</div>
+
+<div class="panel scanner-panel">
+    <div class="panel-heading">
+        <h3>Analyze a Website Address</h3>
+    </div>
+    <p class="muted">The URL is analyzed as text only. NetShield AI does not visit or fetch submitted URLs.</p>
+    <form id="urlScannerForm" class="scanner-form">
+        <input type="url" id="urlInput" name="url" placeholder="https://example.com" maxlength="2048" required />
+        <button type="submit" class="btn btn-primary">ANALYZE URL</button>
+    </form>
+    <div id="urlResult" class="result-box hidden" aria-live="polite"></div>
+</div>
+
+<div class="panel">
+    <div class="panel-heading panel-heading-actions">
+        <h3>Recent Scan History</h3>
+        <button type="button" id="clearHistory" class="btn btn-danger btn-small">DELETE MY HISTORY</button>
+    </div>
+    <div id="historyMessage" class="muted" aria-live="polite"></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead><tr><th>URL</th><th>Score</th><th>Classification</th><th>Indicators</th><th>Time</th></tr></thead>
+            <tbody id="historyRows"><tr><td colspan="5">Loading scan history...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const csrfToken = {{ csrf_token|tojson }};
+const urlForm = document.getElementById('urlScannerForm');
+const urlResult = document.getElementById('urlResult');
+const historyRows = document.getElementById('historyRows');
+const historyMessage = document.getElementById('historyMessage');
+
+function showMessage(container, text, className) {
+    container.replaceChildren();
+    container.className = `result-box ${className}`;
+    const paragraph = document.createElement('p');
+    paragraph.className = 'alert-message';
+    paragraph.textContent = text;
+    container.appendChild(paragraph);
+}
+
+function renderScanResult(result) {
+    urlResult.replaceChildren();
+    urlResult.classList.remove('hidden');
+    const card = document.createElement('div');
+    card.className = `score-card ${result.risk_level.toLowerCase().replace(/\s+/g, '-')}`;
+    const title = document.createElement('h3');
+    title.textContent = 'SECURITY RISK SCORE';
+    const score = document.createElement('div');
+    score.className = 'risk-score-display';
+    score.textContent = `${result.risk_score} / 100`;
+    const level = document.createElement('div');
+    level.className = 'risk-level-label';
+    level.textContent = result.risk_level;
+    card.append(title, score, level);
+
+    const detail = document.createElement('div');
+    detail.className = 'indicator-box';
+    const heading = document.createElement('h4');
+    heading.textContent = 'Detected indicators';
+    const list = document.createElement('ul');
+    const indicators = result.detected_indicators.length ? result.detected_indicators : ['No major text-based indicators detected.'];
+    indicators.forEach((indicator) => {
+        const item = document.createElement('li');
+        item.textContent = indicator;
+        list.appendChild(item);
+    });
+    const recommendation = document.createElement('p');
+    recommendation.className = 'notice';
+    recommendation.textContent = result.recommendation;
+    const disclaimer = document.createElement('p');
+    disclaimer.className = 'notice';
+    disclaimer.textContent = result.disclaimer;
+    detail.append(heading, list, recommendation, disclaimer);
+    urlResult.append(card, detail);
+}
+
+async function loadHistory() {
+    try {
+        const response = await fetch('{{ url_for("api_scan_history") }}');
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not load scan history.');
+        historyRows.replaceChildren();
+        if (!data.scans.length) {
+            const row = historyRows.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 5;
+            cell.textContent = 'No URL scans recorded yet.';
+            return;
+        }
+        data.scans.forEach((scan) => {
+            const row = historyRows.insertRow();
+            [scan.url, `${scan.risk_score}/100`, scan.risk_level,
+                (scan.detected_indicators || []).join(', ') || 'No major indicators', scan.created_at]
+                .forEach((value) => {
+                    const cell = row.insertCell();
+                    cell.textContent = value;
+                });
+        });
+    } catch (error) {
+        historyMessage.textContent = error.message;
+    }
+}
+
+urlForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = urlForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    showMessage(urlResult, 'Analyzing URL text. The address will not be opened.', 'loading');
+    try {
+        const response = await fetch('{{ url_for("scan_url") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify({ url: document.getElementById('urlInput').value.trim() })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'URL analysis failed.');
+        renderScanResult(data.result);
+        await loadHistory();
+    } catch (error) {
+        showMessage(urlResult, error.message, 'error');
+    } finally {
+        button.disabled = false;
+    }
+});
+
+document.getElementById('clearHistory').addEventListener('click', async () => {
+    if (!window.confirm('Delete all of your saved URL scan history? This cannot be undone.')) return;
+    historyMessage.textContent = 'Deleting history...';
+    try {
+        const response = await fetch('{{ url_for("api_scan_history") }}', {
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrfToken }
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not delete history.');
+        historyMessage.textContent = data.message;
+        await loadHistory();
+    } catch (error) {
+        historyMessage.textContent = error.message;
+    }
+});
+
+loadHistory();
+</script>
+{% endblock %}

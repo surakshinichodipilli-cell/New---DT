@@ -1,0 +1,217 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block content %}
+<section class="dashboard-intro">
+    <div>
+        <p class="eyebrow">Security operations center</p>
+        <h1>Your security at a glance</h1>
+        <p class="dashboard-subtitle">A live view of your saved URL checks, network scans, and security alerts.</p>
+    </div>
+    <span class="mode-pill"><span class="mode-dot"></span>{{ network_mode|upper }} MODE</span>
+</section>
+
+<section class="overview-grid" aria-label="Security overview">
+    <article class="overview-card score-card" data-stat-card="overall_security_score">
+        <div class="overview-card-top">
+            <span class="metric-icon cyan" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.2-7 10-4.1-1.8-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <span class="metric-kicker">SECURITY SCORE</span>
+        </div>
+        <strong class="metric-value" data-stat="overall_security_score" data-format="score">{% if stats.overall_security_score is not none %}{{ stats.overall_security_score }}/100{% else %}—{% endif %}</strong>
+        <span class="metric-caption" data-stat-description="overall_security_score">{% if stats.has_scan_data %}Based on your latest saved scans{% else %}Run a scan to establish a baseline{% endif %}</span>
+    </article>
+    <article class="overview-card" data-stat-card="urls_scanned">
+        <div class="overview-card-top">
+            <span class="metric-icon blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </span>
+            <span class="metric-kicker">URLS SCANNED</span>
+        </div>
+        <strong class="metric-value" data-stat="urls_scanned">{{ stats.urls_scanned }}</strong>
+        <span class="metric-caption">Saved text-based analyses</span>
+    </article>
+    <article class="overview-card" data-stat-card="high_risk_urls">
+        <div class="overview-card-top">
+            <span class="metric-icon red" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3 22 20H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+            </span>
+            <span class="metric-kicker">HIGH-RISK URLS</span>
+        </div>
+        <strong class="metric-value" data-stat="high_risk_urls">{{ stats.high_risk_urls }}</strong>
+        <span class="metric-caption">Flagged for careful review</span>
+    </article>
+    <article class="overview-card" data-stat-card="total_devices">
+        <div class="overview-card-top">
+            <span class="metric-icon violet" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+            </span>
+            <span class="metric-kicker">NETWORK DEVICES</span>
+        </div>
+        <strong class="metric-value" data-stat="total_devices">{{ stats.total_devices }}</strong>
+        <span class="metric-caption">In your saved device inventory</span>
+    </article>
+    <article class="overview-card" data-stat-card="unverified_devices">
+        <div class="overview-card-top">
+            <span class="metric-icon amber" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0m-7-7v3m0 2h.01"/></svg>
+            </span>
+            <span class="metric-kicker">NEW / UNVERIFIED</span>
+        </div>
+        <strong class="metric-value" data-stat="unverified_devices">{{ stats.unverified_devices }}</strong>
+        <span class="metric-caption">Review before trusting</span>
+    </article>
+    <article class="overview-card" data-stat-card="active_alerts">
+        <div class="overview-card-top">
+            <span class="metric-icon rose" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12h4"/></svg>
+            </span>
+            <span class="metric-kicker">ACTIVE ALERTS</span>
+        </div>
+        <strong class="metric-value" data-stat="active_alerts">{{ stats.active_alerts }}</strong>
+        <span class="metric-caption">Unresolved items to review</span>
+    </article>
+</section>
+
+<section class="dashboard-content-grid">
+    <article class="dashboard-widget url-widget">
+        <div class="widget-heading">
+            <div>
+                <p class="eyebrow">Link intelligence</p>
+                <h2>URL SECURITY OVERVIEW</h2>
+            </div>
+            <span class="widget-icon" aria-hidden="true">◎</span>
+        </div>
+        <div class="url-overview-body">
+            <div class="risk-breakdown">
+                <div><span class="risk-key low-key"></span><span>Low risk</span><strong data-stat="safe_urls">{{ stats.safe_urls }}</strong></div>
+                <div><span class="risk-key medium-key"></span><span>Medium risk</span><strong data-stat="suspicious_urls">{{ stats.suspicious_urls }}</strong></div>
+                <div><span class="risk-key high-key"></span><span>High risk</span><strong data-stat="high_risk_urls">{{ stats.high_risk_urls }}</strong></div>
+                <p class="total-scans-note"><strong data-stat="urls_scanned">{{ stats.urls_scanned }}</strong> total URL scans</p>
+            </div>
+            <div class="chart-box risk-chart-wrap">
+                <canvas id="riskChart" role="img" aria-label="URL risk distribution chart"></canvas>
+            </div>
+        </div>
+        <a href="{{ url_for('scan_url') }}" class="btn btn-primary widget-action">OPEN URL SCANNER <span aria-hidden="true">→</span></a>
+    </article>
+
+    <article class="dashboard-widget network-widget">
+        <div class="widget-heading">
+            <div>
+                <p class="eyebrow">Authorized device discovery</p>
+                <h2>WI-FI NETWORK MONITOR</h2>
+            </div>
+            <span class="widget-icon" aria-hidden="true">⌁</span>
+        </div>
+        <div class="network-status-banner" data-network-status>
+            {% if stats.latest_network_scan %}
+            <span class="network-status-indicator {{ 'demo' if stats.latest_network_scan.mode == 'demo' else 'live' }}"></span>
+            <div>
+                <strong>{{ 'DEMO DATA' if stats.latest_network_scan.mode == 'demo' else 'LAST LIVE SCAN' }}</strong>
+                <span>{{ stats.latest_network_scan.created_at }}</span>
+            </div>
+            {% else %}
+            <span class="network-status-indicator idle"></span>
+            <div><strong>NO SCANS YET</strong><span>Run a scan to see network activity</span></div>
+            {% endif %}
+        </div>
+        <div class="network-metrics">
+            <div><span>Detected devices</span><strong data-network-stat="detected">{% if stats.latest_network_scan %}{{ stats.latest_network_scan.total_devices }}{% else %}0{% endif %}</strong></div>
+            <div><span>Known / trusted</span><strong data-stat="known_devices">{{ stats.known_devices }}</strong></div>
+            <div><span>New / unverified</span><strong data-stat="unverified_devices">{{ stats.unverified_devices }}</strong></div>
+            <div><span>Suspicious</span><strong data-stat="suspicious_devices">{{ stats.suspicious_devices }}</strong></div>
+        </div>
+        <a href="{{ url_for('network_scan') }}" class="btn btn-secondary widget-action">OPEN NETWORK MONITOR <span aria-hidden="true">→</span></a>
+    </article>
+</section>
+
+<section class="dashboard-content-grid lower-dashboard-grid">
+    <article class="dashboard-widget activity-widget">
+        <div class="widget-heading">
+            <div>
+                <p class="eyebrow">Your saved activity</p>
+                <h2>SECURITY ACTIVITY</h2>
+            </div>
+            <span class="chart-period">LAST 7 DAYS</span>
+        </div>
+        <div class="chart-box activity-chart-wrap">
+            <canvas id="activityChart" role="img" aria-label="URL scans, high-risk detections, device discoveries, and security alerts over the last seven days"></canvas>
+        </div>
+        <p class="chart-empty-state{% if stats.has_activity_data %} hidden{% endif %}" data-activity-empty>
+            No scan activity yet. Start with a URL analysis or an authorized network scan.
+        </p>
+        <p class="chart-load-error hidden" data-chart-error role="status">Charts could not load. Check your internet connection and refresh this page.</p>
+    </article>
+
+    <article class="dashboard-widget security-status-widget">
+        <div class="widget-heading">
+            <div>
+                <p class="eyebrow">Current assessment</p>
+                <h2>SECURITY STATUS</h2>
+            </div>
+            <span class="widget-icon" aria-hidden="true">⬡</span>
+        </div>
+        <div class="security-status-card {{ stats.security_status|lower|replace(' ', '-') }}" data-security-status>
+            <span class="status-orbit" aria-hidden="true"></span>
+            <div>
+                <span class="status-label">OVERALL STATUS</span>
+                <strong data-stat="security_status">{{ stats.security_status }}</strong>
+            </div>
+            <span class="status-score" data-stat="overall_security_score" data-format="score">{% if stats.overall_security_score is not none %}{{ stats.overall_security_score }}/100{% else %}—{% endif %}</span>
+        </div>
+        <p class="security-explanation" data-security-explanation>{{ stats.security_explanation }}</p>
+        <p class="security-disclaimer">Risk estimates are based on saved scan data and are not a guarantee of safety.</p>
+        <a href="{{ url_for('alerts') }}" class="text-link">Review security alerts <span aria-hidden="true">→</span></a>
+    </article>
+</section>
+
+<section class="dashboard-widget events-widget">
+    <div class="widget-heading">
+        <div>
+            <p class="eyebrow">Latest from your account</p>
+            <h2>RECENT SECURITY EVENTS</h2>
+        </div>
+        <a href="{{ url_for('reports') }}" class="text-link">View reports <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table events-table">
+            <thead>
+                <tr>
+                    <th>Event type</th>
+                    <th>Description</th>
+                    <th>Risk level</th>
+                    <th>Date &amp; time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody data-recent-events>
+                {% for event in events %}
+                <tr>
+                    <td class="event-type">{{ event.event_type }}</td>
+                    <td class="event-description">{{ event.description }}</td>
+                    <td><span class="event-risk {{ event.risk_level|lower|replace(' ', '-') }}">{{ event.risk_level }}</span></td>
+                    <td class="event-time">{{ event.event_time }}</td>
+                    <td><span class="event-status {{ event.status|lower|replace(' ', '-') }}">{{ event.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr class="events-empty">
+                    <td colspan="5">
+                        <span class="empty-state-icon" aria-hidden="true">⌁</span>
+                        <strong>No security events yet</strong>
+                        <span>Completed URL analyses, network scans, and alerts will appear here.</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script type="application/json" id="dashboard-data">{{ {"stats": stats, "activity": activity, "events": events}|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+{% endblock %}
